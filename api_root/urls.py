@@ -3,6 +3,10 @@ from django.urls import path, include
 
 from rest_framework import routers
 from vacinacao import views
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 # Aqui são as rotas da API, onde cada rota corresponde a um conjunto de operações CRUD para cada modelo definido.
 router = routers.DefaultRouter()
@@ -16,4 +20,6 @@ router.register(r'vaccination-records', views.VaccinationPetRecordViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(router.urls)),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

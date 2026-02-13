@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Vaccine, VaccineStock, VaccinationPetRecord, Pet, Owner, Clinic
 
+
 class ClinicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Clinic
