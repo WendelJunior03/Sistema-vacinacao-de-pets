@@ -33,7 +33,7 @@ Stack: Django + Django REST Framework + SimpleJWT.
 6. `python -m pip install --upgrade pip`
 7. `python -m pip install django djangorestframework djangorestframework-simplejwt`
 8. `python manage.py migrate`
-9. `python manage.py createsuperuser`
+9. `python manage.py createsuperuser` (Vai aparecer para colocar user, name, email e passwort, obrigatorio é so user e password) - "Usado para gerar o token"
 
 **Execução**
 1. `python manage.py runserver`
@@ -73,6 +73,7 @@ curl -X GET http://127.0.0.1:8000/clinics/ -H "Authorization: Bearer <ACCESS_TOK
 **Navegação no navegador**
 1. A API tem a interface navegável do DRF habilitada.
 2. Acesse qualquer rota no browser para ver a UI.
+3. Documentação Swagger em `/api/docs/`.
 
 **Endpoints**
 Todos seguem o padrão CRUD do DRF.
@@ -87,6 +88,8 @@ Todos seguem o padrão CRUD do DRF.
 | Vaccination Records | `/vaccination-records/` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
 | Token | `/api/token/` | `POST` |
 | Token Refresh | `/api/token/refresh/` | `POST` |
+| Schema | `/api/schema/` | `GET` |
+| Swagger UI | `/api/docs/` | `GET` |
 
 **Padrão de rotas**
 1. Listagem e criação: `/recurso/` (`GET`, `POST`)
@@ -100,6 +103,31 @@ Todos seguem o padrão CRUD do DRF.
 **Formato de datas**
 1. `vaccination_date` deve seguir `YYYY-MM-DD`.
 
+**Formato de resposta (customizado)**
+Sucesso (2xx):
+```json
+{
+  "success": true,
+  "status_code": 200,
+  "message": "OK",
+  "data": {}
+}
+```
+
+Erro (4xx/5xx):
+```json
+{
+  "success": false,
+  "status_code": 400,
+  "message": "Erro de validação.",
+  "errors": {
+    "field": [
+      "Mensagem de erro"
+    ]
+  }
+}
+```
+
 **Modelos e campos**
 
 **Clinic**
@@ -112,11 +140,12 @@ Todos seguem o padrão CRUD do DRF.
 2. `owner_name` (string)
 
 **Pet**
-1. `pet_name` (string)
-2. `pet_breed` (string)
-3. `pet_age` (inteiro)
-4. `owner_pet` (FK para Owner)
-5. `owner` (objeto somente leitura com dados do Owner)
+1. `microchip_id` (string, único, opcional)
+2. `pet_name` (string)
+3. `pet_breed` (string)
+4. `pet_age` (inteiro)
+5. `owners` (lista de Owners, somente leitura)
+6. `owner_ids` (lista de IDs de Owner para escrita)
 
 **Vaccine**
 1. `vaccine_name` (string, único)
@@ -138,21 +167,30 @@ Todos seguem o padrão CRUD do DRF.
 2. Campos únicos e restrições de unicidade retornam `400` em caso de violação.
 3. Não há filtros ou paginação configurados por padrão.
 4. O JSON retornado pelos endpoints de listagem é o padrão do DRF.
+5. `owner_ids` deve conter pelo menos um Owner ao criar um Pet.
+6. `microchip_id` é opcional, mas se informado deve ser único.
 
 **Exemplo de resposta (Pet)**  
-O endpoint de pets retorna o `owner_pet` (id) e também o objeto `owner` somente leitura.
+O endpoint de pets retorna a lista de owners e aceita `owner_ids` na escrita.
 ```json
 {
   "id": 1,
+  "microchip_id": "BR-CHIP-000123",
   "pet_name": "Rex",
   "pet_breed": "Labrador",
   "pet_age": 4,
-  "owner_pet": 1,
-  "owner": {
-    "id": 1,
-    "cpf_owner": "123.456.789-00",
-    "owner_name": "Maria Silva"
-  }
+  "owners": [
+    {
+      "id": 1,
+      "cpf_owner": "123.456.789-00",
+      "owner_name": "Maria Silva"
+    },
+    {
+      "id": 2,
+      "cpf_owner": "987.654.321-00",
+      "owner_name": "Carlos Silva"
+    }
+  ]
 }
 ```
 
@@ -169,10 +207,11 @@ O endpoint de pets retorna o `owner_pet` (id) e também o objeto `owner` somente
 **Criar Pet**
 ```json
 {
+  "microchip_id": "BR-CHIP-000123",
   "pet_name": "Rex",
   "pet_breed": "Labrador",
   "pet_age": 4,
-  "owner_pet": 1
+  "owner_ids": [1, 2]
 }
 ```
 
@@ -212,7 +251,7 @@ O endpoint de pets retorna o `owner_pet` (id) e também o objeto `owner` somente
 
 **Fluxo sugerido de uso**
 1. Crie um `Owner`.
-2. Crie um `Pet` apontando para `owner_pet`.
+2. Crie um `Pet` apontando para `owner_ids`.
 3. Crie uma `Clinic`.
 4. Crie uma `Vaccine`.
 5. Crie um `VaccineStock` relacionando `clinic` e `vaccine`.
@@ -227,7 +266,7 @@ curl -X POST http://127.0.0.1:8000/owners/ -H "Authorization: Bearer <ACCESS_TOK
 
 **Criar Pet**
 ```bash
-curl -X POST http://127.0.0.1:8000/pets/ -H "Authorization: Bearer <ACCESS_TOKEN>" -H "Content-Type: application/json" -d '{"pet_name":"Rex","pet_breed":"Labrador","pet_age":4,"owner_pet":1}'
+curl -X POST http://127.0.0.1:8000/pets/ -H "Authorization: Bearer <ACCESS_TOKEN>" -H "Content-Type: application/json" -d '{"microchip_id":"BR-CHIP-000123","pet_name":"Rex","pet_breed":"Labrador","pet_age":4,"owner_ids":[1,2]}'
 ```
 
 **Criar Clinic**
