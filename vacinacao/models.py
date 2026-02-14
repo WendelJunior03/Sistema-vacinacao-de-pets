@@ -16,12 +16,13 @@ class Owner(models.Model):
         return self.owner_name
 
 class Pet(models.Model):
+    # Aqui eu adicionei o campo microchip_id como se fosse o CPF do pet
+    microchip_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
     pet_name = models.CharField(max_length=255, default="")
     pet_breed = models.CharField(max_length=255, default="")
     pet_age = models.IntegerField(default=0)
-    owner_pet = models.ForeignKey(Owner, on_delete=models.CASCADE, related_name='pets')
+    owners = models.ManyToManyField(Owner, related_name='pets')
 
-# Aqui eu coloquei a restrição de unicidade para garantir que um pet seja cadastrado apenas uma vez por proprietário
     def __str__(self):
         return self.pet_name
 
